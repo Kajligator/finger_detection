@@ -29,17 +29,21 @@ while camera.isOpened():
     blur = cv.medianBlur(res, 5)
 
     element = cv.getStructuringElement(cv.MORPH_ELLIPSE, (2 * element_size + 1, 2 * element_size + 1), (element_size, element_size))
-    cv.imshow('frame', frame)
-    cv.imshow('mask', mask)
-    cv.imshow('res', dilation)
-    ret, thresh = cv.threshold(blur, 127, 255, 0)
+
+    ret, thresh = cv.threshold(blur, THRESHOLD, 255, cv.THRESH_BINARY)
     _, contours = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+
+
     largest_contour = 0
 
     for cnt in contours:
         print(cnt)
-    # for i in len(cnt):
-    # print(cnt)
+
+    cv.imshow('frame', frame)
+    # cv.imshow('mask', mask)
+    # cv.imshow('res', dilation)
+    cv.imshow('thresh', thresh)
+
     k = cv.waitKey(10)
     if k == 27:  # press ESC to exit
         break
