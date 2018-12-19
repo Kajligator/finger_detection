@@ -33,8 +33,6 @@ while camera.isOpened():
     _, contours = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
 
-    largest_contour = 0
-
     for cnt in contours:
         print(cnt)
 
