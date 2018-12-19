@@ -10,6 +10,7 @@ THRESHOLD = 60
 MIN_HSV = np.array([0, 0, 221])
 MAX_HSV = np.array([29, 114, 255])
 
+element_size = 5
 camera = cv.VideoCapture(0)
 camera.set(10, 200)
 
@@ -27,11 +28,11 @@ while camera.isOpened():
 
     blur = cv.medianBlur(res, 5)
 
-    element = cv.getStructuringElement(cv.MORPH_ELLIPSE, (2 * element_size + 1, 2 * element_size + 1), (element_size, element_size))
+    element = cv.getStructuringElement(cv.MORPH_ELLIPSE,
+                                       (2 * element_size + 1, 2 * element_size + 1), (element_size, element_size))
 
     ret, thresh = cv.threshold(blur, THRESHOLD, 255, cv.THRESH_BINARY)
     _, contours = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-
 
     for cnt in contours:
         print(cnt)
