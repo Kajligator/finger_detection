@@ -9,7 +9,6 @@ THRESHOLD = 60
 
 MIN_HSV = np.array([0, 0, 221])
 MAX_HSV = np.array([29, 114, 255])
-element_size = 5
 
 camera = cv.VideoCapture(0)
 camera.set(10, 200)
