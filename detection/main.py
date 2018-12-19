@@ -32,8 +32,8 @@ while camera.isOpened():
     cv.imshow('frame', frame)
     cv.imshow('mask', mask)
     cv.imshow('res', dilation)
-
-    _, contours = cv.findContours(blur, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
+    ret, thresh = cv.threshold(blur, 127, 255, 0)
+    _, contours = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
     largest_contour = 0
 
     for cnt in contours:
