@@ -6,10 +6,11 @@ import math
 VARIABLES
 '''
 THRESHOLD = 60
+FONT_FACE = cv.FONT_HERSHEY_SCRIPT_SIMPLEX
+FONT_SCALE = 2
+FONT_THICKNESS = 3
 
-'''
-OPENCV
-'''
+kernel = np.ones((5, 5), np.uint8)
 
 
 # MIN_HSV = np.array([0, 0, 221])
@@ -55,7 +56,8 @@ def calculate_inner_angle(px1, py1, px2, py2, cx1, cy1):
 while camera.isOpened():
     _, frame = camera.read()
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-    mask = cv.inRange(hsv, MIN_HSV, MAX_HSV)
+    dilation = cv.dilate(hsv, kernel, iterations=1)
+    mask = cv.inRange(dilation, MIN_HSV, MAX_HSV)
     ret, thresh = cv.threshold(mask, THRESHOLD, 255, cv.THRESH_BINARY)
 
     # Check for contours and pick the largest one
@@ -96,7 +98,7 @@ while camera.isOpened():
                     angle = math.atan2(center_y - point1[1], center_x - point1[0]) * 180 / math.pi
                     inAngle = calculate_inner_angle(point1[0], point1[1], point2[0], point2[1], point3[0], point3[1])
                     length = math.sqrt(math.pow(point1[0] - point3[0], 2) + math.pow(point1[0] - point3[1], 2))
-                    if (angle > -30 and angle < 160 and math.fabs(inAngle) > 20 and math.fabs(inAngle) < 120 and length > 0.1 * h):
+                    if not (not (angle > -30) or not (angle < 160) or not (20 < math.fabs(inAngle) < 120)) and length > 0.1 * h:
                         valid_points.append(point1)
 
                     # cv.line(frame, point1, point3, (64, 255, 64), 3)
@@ -105,10 +107,11 @@ while camera.isOpened():
                 for i in range(length_of_valid_points):
                     cv.circle(frame, valid_points[i], 10, (255, 0, 0), 3)
                     print(length_of_valid_points)
+                    cv.putText(frame, str(length_of_valid_points), (10, 200), FONT_FACE, FONT_SCALE, (255, 128, 0), FONT_THICKNESS, cv.LINE_AA)
 
     cv.imshow('frame', frame)
     # cv.imshow('mask', mask)
-    # # cv.imshow('res', dilation)
+    # cv.imshow('res', dilation)
     # cv.imshow('thresh', thresh)
 
     k = cv.waitKey(10)
