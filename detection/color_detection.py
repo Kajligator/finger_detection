@@ -30,12 +30,16 @@ cv.createTrackbar(sh, barsWindow, 0, 255, nothing)
 cv.createTrackbar(vl, barsWindow, 0, 255, nothing)
 cv.createTrackbar(vh, barsWindow, 0, 255, nothing)
 
+MIN_HSV = np.array([0, 0, 221])
+MAX_HSV = np.array([179, 114, 255])
+
+
 # set initial values for sliders
 cv.setTrackbarPos(hl, barsWindow, 0)
 cv.setTrackbarPos(hh, barsWindow, 179)
 cv.setTrackbarPos(sl, barsWindow, 0)
-cv.setTrackbarPos(sh, barsWindow, 255)
-cv.setTrackbarPos(vl, barsWindow, 0)
+cv.setTrackbarPos(sh, barsWindow, 114)
+cv.setTrackbarPos(vl, barsWindow, 221)
 cv.setTrackbarPos(vh, barsWindow, 255)
 
 while (True):
