@@ -2,6 +2,11 @@ import cv2 as cv
 import numpy as np
 import math
 
+
+# optional argument for trackbars
+def nothing(x):
+    pass
+
 '''
 VARIABLES
 '''
@@ -9,9 +14,6 @@ THRESHOLD = 60
 FONT_FACE = cv.FONT_HERSHEY_SCRIPT_SIMPLEX
 FONT_SCALE = 2
 FONT_THICKNESS = 3
-
-kernel = np.ones((5, 5), np.uint8)
-
 
 # MIN_HSV = np.array([0, 0, 221])
 # MAX_HSV = np.array([29, 114, 255])
@@ -22,6 +24,35 @@ camera = cv.VideoCapture(0)
 camera.set(10, 200)
 
 kernel = np.ones((3, 3), np.uint8)
+
+# named ites for easy reference
+barsWindow = 'Bars'
+hl = 'H Low'
+hh = 'H High'
+sl = 'S Low'
+sh = 'S High'
+vl = 'V Low'
+vh = 'V High'
+
+# create window for the slidebars
+cv.namedWindow(barsWindow, flags=cv.WINDOW_AUTOSIZE)
+
+# create the sliders
+cv.createTrackbar(hl, barsWindow, 0, 179, nothing)
+cv.createTrackbar(hh, barsWindow, 0, 179, nothing)
+cv.createTrackbar(sl, barsWindow, 0, 255, nothing)
+cv.createTrackbar(sh, barsWindow, 0, 255, nothing)
+cv.createTrackbar(vl, barsWindow, 0, 255, nothing)
+cv.createTrackbar(vh, barsWindow, 0, 255, nothing)
+
+# set initial values for sliders
+cv.setTrackbarPos(hl, barsWindow, 0)
+cv.setTrackbarPos(hh, barsWindow, 179)
+cv.setTrackbarPos(sl, barsWindow, 0)
+cv.setTrackbarPos(sh, barsWindow, 114)
+cv.setTrackbarPos(vl, barsWindow, 221)
+cv.setTrackbarPos(vh, barsWindow, 255)
+
 
 def calculate_inner_angle(px1, py1, px2, py2, cx1, cy1):
 
@@ -46,7 +77,7 @@ def calculate_inner_angle(px1, py1, px2, py2, cx1, cy1):
     P1 = Bx - Ax
     P2 = By - Ay
 
-    A = math.acos((P1 * Q1 + P2 * Q2) / (math.sqrt(P1 * P1 + P2 * P2) * math.sqrt(Q1 * Q1 + Q2 * Q2) ) )
+    A = math.acos((P1 * Q1 + P2 * Q2) / (math.sqrt(P1 * P1 + P2 * P2) * math.sqrt(Q1 * Q1 + Q2 * Q2)))
 
     A = A * 180 / math.pi
 
@@ -57,7 +88,20 @@ while camera.isOpened():
     _, frame = camera.read()
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
     dilation = cv.dilate(hsv, kernel, iterations=1)
-    mask = cv.inRange(dilation, MIN_HSV, MAX_HSV)
+
+    # read trackbar positions for all
+    hul = cv.getTrackbarPos(hl, barsWindow)
+    huh = cv.getTrackbarPos(hh, barsWindow)
+    sal = cv.getTrackbarPos(sl, barsWindow)
+    sah = cv.getTrackbarPos(sh, barsWindow)
+    val = cv.getTrackbarPos(vl, barsWindow)
+    vah = cv.getTrackbarPos(vh, barsWindow)
+
+    # make array for final values
+    HSVLOW = np.array([hul, sal, val])
+    HSVHIGH = np.array([huh, sah, vah])
+
+    mask = cv.inRange(dilation, HSVLOW, HSVHIGH)
     ret, thresh = cv.threshold(mask, THRESHOLD, 255, cv.THRESH_BINARY)
 
     # Check for contours and pick the largest one
@@ -98,7 +142,9 @@ while camera.isOpened():
                     angle = math.atan2(center_y - point1[1], center_x - point1[0]) * 180 / math.pi
                     inAngle = calculate_inner_angle(point1[0], point1[1], point2[0], point2[1], point3[0], point3[1])
                     length = math.sqrt(math.pow(point1[0] - point3[0], 2) + math.pow(point1[0] - point3[1], 2))
-                    if not (not (angle > -30) or not (angle < 160) or not (20 < math.fabs(inAngle) < 120)) and length > 0.1 * h:
+                    # if not (not (angle > -30) or not (angle < 160) or not (20 < math.fabs(inAngle) < 120)) and length > 0.1 * h:
+                    if not (not (angle > -30) or not (angle < 240) or not (20 < math.fabs(inAngle) < 120)) and length > 0.5 * h:
+
                         valid_points.append(point1)
 
                     # cv.line(frame, point1, point3, (64, 255, 64), 3)
@@ -110,7 +156,7 @@ while camera.isOpened():
                     cv.putText(frame, str(length_of_valid_points), (10, 200), FONT_FACE, FONT_SCALE, (255, 128, 0), FONT_THICKNESS, cv.LINE_AA)
 
     cv.imshow('frame', frame)
-    # cv.imshow('mask', mask)
+    cv.imshow('mask', mask)
     # cv.imshow('res', dilation)
     # cv.imshow('thresh', thresh)
 
