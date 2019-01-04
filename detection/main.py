@@ -17,8 +17,8 @@ FONT_THICKNESS = 3
 
 # MIN_HSV = np.array([0, 0, 221])
 # MAX_HSV = np.array([29, 114, 255])
-MIN_HSV = np.array([0, 0, 221])
-MAX_HSV = np.array([179, 114, 255])
+MIN_HSV = np.array([0, 0, 160])
+MAX_HSV = np.array([179, 88, 255])
 
 camera = cv.VideoCapture(0)
 camera.set(10, 200)
@@ -46,12 +46,12 @@ cv.createTrackbar(vl, barsWindow, 0, 255, nothing)
 cv.createTrackbar(vh, barsWindow, 0, 255, nothing)
 
 # set initial values for sliders
-cv.setTrackbarPos(hl, barsWindow, 0)
-cv.setTrackbarPos(hh, barsWindow, 179)
-cv.setTrackbarPos(sl, barsWindow, 0)
-cv.setTrackbarPos(sh, barsWindow, 114)
-cv.setTrackbarPos(vl, barsWindow, 221)
-cv.setTrackbarPos(vh, barsWindow, 255)
+cv.setTrackbarPos(hl, barsWindow, MIN_HSV[0])
+cv.setTrackbarPos(hh, barsWindow, MAX_HSV[0])
+cv.setTrackbarPos(sl, barsWindow, MIN_HSV[1])
+cv.setTrackbarPos(sh, barsWindow, MAX_HSV[1])
+cv.setTrackbarPos(vl, barsWindow, MIN_HSV[2])
+cv.setTrackbarPos(vh, barsWindow, MAX_HSV[2])
 
 
 def calculate_inner_angle(px1, py1, px2, py2, cx1, cy1):
@@ -142,8 +142,8 @@ while camera.isOpened():
                     angle = math.atan2(center_y - point1[1], center_x - point1[0]) * 180 / math.pi
                     inAngle = calculate_inner_angle(point1[0], point1[1], point2[0], point2[1], point3[0], point3[1])
                     length = math.sqrt(math.pow(point1[0] - point3[0], 2) + math.pow(point1[0] - point3[1], 2))
-                    # if not (not (angle > -30) or not (angle < 160) or not (20 < math.fabs(inAngle) < 120)) and length > 0.1 * h:
-                    if not (not (angle > -30) or not (angle < 240) or not (20 < math.fabs(inAngle) < 120)) and length > 0.5 * h:
+                    if not (not (angle > -30) or not (angle < 160) or not (20 < math.fabs(inAngle) < 120)) and length > 0.1 * h:
+                    # if not (not (angle > -30) or not (angle < 180) or not (25 < math.fabs(inAngle) < 120)) and length > 0.18 * h:
 
                         valid_points.append(point1)
 
