@@ -59,29 +59,21 @@ def calculate_inner_angle(px1, py1, px2, py2, cx1, cy1):
     dist1 = math.sqrt((px1 - cx1) * (px1 - cx1) + (py1 - cy1) * (py1 - cy1))
     dist2 = math.sqrt((px2 - cx1) * (px2 - cx1) + (py2 - cy1) * (py2 - cy1))
 
-    Cx = cx1
-    Cy = cy1
+    cx = cx1
+    cy = cy1
     if dist1 < dist2:
-        Bx = px1
-        By = py1
-        Ax = px2
-        Ay = py2
+        q1 = cx - px2
+        q2 = cy - py2
+        p1 = px1 - px2
+        p2 = py1 - py2
     else:
-        Bx = px2
-        By = py2
-        Ax = px1
-        Ay = py1
+        q1 = cx - px1
+        q2 = cy - py1
+        p1 = px2 - px1
+        p2 = py2 - py1
 
-    Q1 = Cx - Ax
-    Q2 = Cy - Ay
-    P1 = Bx - Ax
-    P2 = By - Ay
-
-    A = math.acos((P1 * Q1 + P2 * Q2) / (math.sqrt(P1 * P1 + P2 * P2) * math.sqrt(Q1 * Q1 + Q2 * Q2)))
-
-    A = A * 180 / math.pi
-
-    return A
+    awns = math.acos((p1 * q1 + p2 * q2) / (math.sqrt(p1 * p1 + p2 * p2) * math.sqrt(q1 * q1 + q2 * q2))) * 180 / math.pi
+    return awns
 
 
 while camera.isOpened():
@@ -118,7 +110,7 @@ while camera.isOpened():
                 largest_contour = i
 
         res = contours[largest_contour]
-        hull = cv.convexHull(res)
+        # hull = cv.convexHull(res)
 
         # Draw on the main frame the larges contour
         # cv.drawContours(frame, [res], 0, (0, 255, 255), 2)
