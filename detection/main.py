@@ -7,6 +7,7 @@ import math
 def nothing(x):
     pass
 
+
 '''
 VARIABLES
 '''
@@ -15,21 +16,15 @@ FONT_FACE = cv.FONT_HERSHEY_SCRIPT_SIMPLEX
 FONT_SCALE = 2
 FONT_THICKNESS = 3
 
-'''
-MATH
-'''
 HALF_PI = math.pi / 2
+MIN_ANGLE_THUMB = HALF_PI - math.radians(40)
+MAX_ANGLE_FINGERS = HALF_PI - math.radians(10)
 
-
+# Default hsv maks settings
 MIN_HSV = np.array([0, 0, 255])
 MAX_HSV = np.array([179, 65, 255])
 
-camera = cv.VideoCapture(0)
-camera.set(10, 200)
-
-kernel = np.ones((3, 3), np.uint8)
-
-# named ites for easy reference
+# named items for easy reference
 barsWindow = 'Bars'
 hl = 'H Low'
 hh = 'H High'
@@ -37,6 +32,12 @@ sl = 'S Low'
 sh = 'S High'
 vl = 'V Low'
 vh = 'V High'
+
+# Give CV acces to camera
+camera = cv.VideoCapture(0)
+camera.set(10, 200)
+
+kernel = np.ones((3, 3), np.uint8)
 
 # create window for the slidebars
 cv.namedWindow(barsWindow, flags=cv.WINDOW_AUTOSIZE)
@@ -57,6 +58,11 @@ cv.setTrackbarPos(sh, barsWindow, MAX_HSV[1])
 cv.setTrackbarPos(vl, barsWindow, MIN_HSV[2])
 cv.setTrackbarPos(vh, barsWindow, MAX_HSV[2])
 
+
+def calculate_arm(p1, p2):
+    return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+
+
 while camera.isOpened():
     _, frame = camera.read()
 
@@ -69,11 +75,11 @@ while camera.isOpened():
     vah = cv.getTrackbarPos(vh, barsWindow)
 
     # make array for final values
-    HSVLOW = np.array([hul, sal, val])
-    HSVHIGH = np.array([huh, sah, vah])
+    hsv_low = np.array([hul, sal, val])
+    hsv_high = np.array([huh, sah, vah])
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
 
-    mask = cv.inRange(hsv, HSVLOW, HSVHIGH)
+    mask = cv.inRange(hsv, hsv_low, hsv_high)
     dilation = cv.dilate(mask, kernel, iterations=1)
 
     ret, thresh = cv.threshold(dilation, THRESHOLD, 255, cv.THRESH_BINARY)
@@ -90,56 +96,57 @@ while camera.isOpened():
             if area > largest_area:
                 largest_area = area
                 largest_contour = i
-
         res = contours[largest_contour]
 
+    # Create convexes
         hull = cv.convexHull(res, returnPoints=False)
 
+    # Check if there are convexes
         if len(hull) > 2:
-            convex_defects = cv.convexityDefects(res, hull)
-            if type(convex_defects) != type(None):
+            convex_defects = cv.convexityDefects(res, hull)  # Find points of defections
+            if type(convex_defects) != type(None):           # Sometimes convex defects are a None type  ¯\_(ツ)_/¯
                 valid_points = []
                 x, y, w, h = cv.boundingRect(res)
                 cv.rectangle(frame, (x, y), (x + w, y + h), (0, 128, 0), 2)
                 center_x = (x + w) // 2
                 center_y = (y + h) // 2
-                # print(center_x, center_y)
-                arr = []
+                amount_of_valid_points_collector = []       # Collect all the amount of the found points
                 for i in range(convex_defects.shape[0]):
                     s, e, f, d = convex_defects[i][0]
-                    point1 = tuple(res[s][0])
-                    point2 = tuple(res[e][0])
-                    point3 = tuple(res[f][0])
+                    start = tuple(res[s][0])
+                    end = tuple(res[e][0])
+                    far = tuple(res[f][0])
+    # Calculating the arms of the triangles
+                    arm_a = calculate_arm(end, start)
+                    arm_b = calculate_arm(far, start)
+                    arm_c = calculate_arm(end, far)
+    #                 a = math.sqrt((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2)
+    #                 b = math.sqrt((far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2)
+    #                 c = math.sqrt((end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2)
+    # Calculating the angle between the fingers
+                    angle = math.acos((arm_b ** 2 + arm_c ** 2 - arm_a ** 2) / (2 * arm_b * arm_c))
 
-                    a = math.sqrt((point2[0] - point1[0]) ** 2 + (point2[1] - point1[1]) ** 2)
-                    b = math.sqrt((point3[0] - point1[0]) ** 2 + (point3[1] - point1[1]) ** 2)
-                    c = math.sqrt((point2[0] - point3[0]) ** 2 + (point2[1] - point3[1]) ** 2)
-                    angle = math.acos((b ** 2 + c ** 2 - a ** 2) / (2 * b * c))
-                    add = math.radians(40)
-                    add2 = math.radians(10)
+    # Check for the thumb only
+                    if MIN_ANGLE_THUMB <= angle < HALF_PI:
+                        valid_points.append(start)
 
-                    if HALF_PI - add <= angle < HALF_PI:
-                        valid_points.append(point1)
-                        cv.putText(frame, str(angle), point1, FONT_FACE, 1 / 2, (128, 255, 64), 1, cv.LINE_AA)
+    # Check for the fingers only
+                    if angle <= MAX_ANGLE_FINGERS:
+                        valid_points.append(end)
+                    amount_of_valid_points_collector.append(len(valid_points))
 
-                    if angle <= HALF_PI - add2:
-                        valid_points.append(point2)
-                        cv.putText(frame, str(angle), point2, FONT_FACE, 1 / 2, (128, 255, 64), 1, cv.LINE_AA)
-                    arr.append(len(valid_points))
-                most_common = np.bincount(arr).argmax()
-
+    # Get the most common amount of fingers, to make the detection less... untamed
+                most_common = np.bincount(amount_of_valid_points_collector).argmax()
+                cv.putText(frame, str(most_common), (10, 200), FONT_FACE, FONT_SCALE, (255, 128, 0), FONT_THICKNESS, cv.LINE_AA)
                 length_of_valid_points = len(valid_points)
+
                 for i in range(length_of_valid_points):
                     cv.circle(frame, valid_points[i], 3, (255, 0, 0), 3)
-                    # print(length_of_valid_points)
-                    # cv.putText(frame, str(valid_points[i]), (valid_points[i]), FONT_FACE, 1/2, (128, 255, 64), 1, cv.LINE_AA)
-                cv.putText(frame, str(most_common), (10, 200), FONT_FACE, FONT_SCALE, (255, 128, 0), FONT_THICKNESS, cv.LINE_AA)
 
-    cv.imshow('frame', frame)
     cv.imshow('mask', mask)
-    # cv.imshow('res', dilation)
-    # cv.imshow('thresh', thresh)
+    cv.imshow('frame', frame)
 
+    # press ESC to exit
     k = cv.waitKey(10)
-    if k == 27:  # press ESC to exit
+    if k == 27:
         break
