@@ -120,9 +120,7 @@ while camera.isOpened():
                     arm_a = calculate_arm(end, start)
                     arm_b = calculate_arm(far, start)
                     arm_c = calculate_arm(end, far)
-    #                 a = math.sqrt((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2)
-    #                 b = math.sqrt((far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2)
-    #                 c = math.sqrt((end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2)
+
     # Calculating the angle between the fingers
                     angle = math.acos((arm_b ** 2 + arm_c ** 2 - arm_a ** 2) / (2 * arm_b * arm_c))
 
@@ -133,7 +131,9 @@ while camera.isOpened():
     # Check for the fingers only
                     if angle <= MAX_ANGLE_FINGERS:
                         valid_points.append(end)
-                    amount_of_valid_points_collector.append(len(valid_points))
+
+                    length_of_valid_points = len(valid_points)
+                    amount_of_valid_points_collector.append(length_of_valid_points)
 
     # Get the most common amount of fingers, to make the detection less... untamed
                 most_common = np.bincount(amount_of_valid_points_collector).argmax()
@@ -141,7 +141,7 @@ while camera.isOpened():
                 length_of_valid_points = len(valid_points)
 
                 for i in range(length_of_valid_points):
-                    cv.circle(frame, valid_points[i], 3, (255, 0, 0), 3)
+                    cv.circle(frame, valid_points[i], 15, (255, 0, 0), -1)
 
     cv.imshow('mask', mask)
     cv.imshow('frame', frame)
