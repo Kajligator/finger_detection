@@ -15,10 +15,14 @@ FONT_FACE = cv.FONT_HERSHEY_SCRIPT_SIMPLEX
 FONT_SCALE = 2
 FONT_THICKNESS = 3
 
-# MIN_HSV = np.array([0, 0, 221])
-# MAX_HSV = np.array([29, 114, 255])
+'''
+MATH
+'''
+HALF_PI = math.pi / 2
+
+
 MIN_HSV = np.array([0, 0, 255])
-MAX_HSV = np.array([179, 45, 255])
+MAX_HSV = np.array([179, 65, 255])
 
 camera = cv.VideoCapture(0)
 camera.set(10, 200)
@@ -53,35 +57,8 @@ cv.setTrackbarPos(sh, barsWindow, MAX_HSV[1])
 cv.setTrackbarPos(vl, barsWindow, MIN_HSV[2])
 cv.setTrackbarPos(vh, barsWindow, MAX_HSV[2])
 
-
-def calculate_inner_angle(px1, py1, px2, py2, cx1, cy1):
-
-    dist1 = math.sqrt((px1 - cx1) * (px1 - cx1) + (py1 - cy1) * (py1 - cy1))
-    dist2 = math.sqrt((px2 - cx1) * (px2 - cx1) + (py2 - cy1) * (py2 - cy1))
-
-    # print("d1: {}\n"
-    #       "d2: {}".format(dist1, dist2))
-    cx = cx1
-    cy = cy1
-    if dist1 < dist2:
-        q1 = cx - px2
-        q2 = cy - py2
-        p1 = px1 - px2
-        p2 = py1 - py2
-    else:
-        q1 = cx - px1
-        q2 = cy - py1
-        p1 = px2 - px1
-        p2 = py2 - py1
-
-    awns = math.acos((p1 * q1 + p2 * q2) / (math.sqrt(p1 * p1 + p2 * p2) * math.sqrt(q1 * q1 + q2 * q2))) * 180 / math.pi
-    print("A: {}".format(awns))
-    return awns
-
-
 while camera.isOpened():
     _, frame = camera.read()
-
 
     # read trackbar positions for all
     hul = cv.getTrackbarPos(hl, barsWindow)
@@ -115,11 +92,7 @@ while camera.isOpened():
                 largest_contour = i
 
         res = contours[largest_contour]
-        # hull = cv.convexHull(res)
 
-        # Draw on the main frame the larges contour
-        # cv.drawContours(frame, [res], 0, (0, 255, 255), 2)
-        # cv.drawContours(frame, [hull], 0, (0, 128, 128), 3)
         hull = cv.convexHull(res, returnPoints=False)
 
         if len(hull) > 2:
@@ -131,28 +104,36 @@ while camera.isOpened():
                 center_x = (x + w) // 2
                 center_y = (y + h) // 2
                 # print(center_x, center_y)
+                arr = []
                 for i in range(convex_defects.shape[0]):
                     s, e, f, d = convex_defects[i][0]
                     point1 = tuple(res[s][0])
                     point2 = tuple(res[e][0])
                     point3 = tuple(res[f][0])
-                    # cv.circle(frame, point3, 10, (0, 255, 0), -1)
-                    angle = math.atan2(center_y - point1[1], center_x - point1[0]) * 180 / math.pi
-                    inAngle = calculate_inner_angle(point1[0], point1[1], point2[0], point2[1], point3[0], point3[1])
-                    length = math.sqrt(math.pow(point1[0] - point3[0], 2) + math.pow(point1[0] - point3[1], 2))
-                    # if not (not (angle > -30) or not (angle < 160) or not (20 < math.fabs(inAngle) < 120)) and length > 0.1 * h:
-                    if not (not (angle > -160) or not (angle < 160) or not (25 < math.fabs(inAngle) < 120)) and length > 0.18 * h:
-                        valid_points.append(point1)
-                        # valid_points.append(point2)
-                    #     print("p1: {} p2 {}".format(point1, point2))
 
-                    # cv.line(frame, point1, point3, (64, 255, 64), 3)
-                    # cv.line(frame, point3, point2, (255, 128, 64), 3)
+                    a = math.sqrt((point2[0] - point1[0]) ** 2 + (point2[1] - point1[1]) ** 2)
+                    b = math.sqrt((point3[0] - point1[0]) ** 2 + (point3[1] - point1[1]) ** 2)
+                    c = math.sqrt((point2[0] - point3[0]) ** 2 + (point2[1] - point3[1]) ** 2)
+                    angle = math.acos((b ** 2 + c ** 2 - a ** 2) / (2 * b * c))
+                    add = math.radians(40)
+                    add2 = math.radians(10)
+
+                    if HALF_PI - add <= angle < HALF_PI:
+                        valid_points.append(point1)
+                        cv.putText(frame, str(angle), point1, FONT_FACE, 1 / 2, (128, 255, 64), 1, cv.LINE_AA)
+
+                    if angle <= HALF_PI - add2:
+                        valid_points.append(point2)
+                        cv.putText(frame, str(angle), point2, FONT_FACE, 1 / 2, (128, 255, 64), 1, cv.LINE_AA)
+                    arr.append(len(valid_points))
+                most_common = np.bincount(arr).argmax()
+
                 length_of_valid_points = len(valid_points)
                 for i in range(length_of_valid_points):
-                    cv.circle(frame, valid_points[i], 10, (255, 0, 0), 3)
+                    cv.circle(frame, valid_points[i], 3, (255, 0, 0), 3)
                     # print(length_of_valid_points)
-                    cv.putText(frame, str(length_of_valid_points), (10, 200), FONT_FACE, FONT_SCALE, (255, 128, 0), FONT_THICKNESS, cv.LINE_AA)
+                    # cv.putText(frame, str(valid_points[i]), (valid_points[i]), FONT_FACE, 1/2, (128, 255, 64), 1, cv.LINE_AA)
+                cv.putText(frame, str(most_common), (10, 200), FONT_FACE, FONT_SCALE, (255, 128, 0), FONT_THICKNESS, cv.LINE_AA)
 
     cv.imshow('frame', frame)
     cv.imshow('mask', mask)
