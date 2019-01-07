@@ -1,24 +1,23 @@
+import json
+
 import cv2 as cv
 import numpy as np
 import math
 
-
-# optional argument for trackbars
-def nothing(x):
-    pass
-
+with open('./hsv_settings.json') as file:
+    hsv_settings = json.load(file)
 
 '''
 VARIABLES
 '''
-THRESHOLD = 60
+THRESHOLD = 65
 FONT_FACE = cv.FONT_HERSHEY_SCRIPT_SIMPLEX
 FONT_SCALE = 2
 FONT_THICKNESS = 3
 
 HALF_PI = math.pi / 2
 MIN_ANGLE_THUMB = HALF_PI - math.radians(40)    #40
-MAX_ANGLE_FINGERS = HALF_PI - math.radians(10)  #10
+MAX_ANGLE_FINGERS = HALF_PI - math.radians(5)  #10
 
 # Default hsv maks settings
 MIN_HSV = np.array([0, 121, 255])
@@ -26,12 +25,12 @@ MAX_HSV = np.array([36, 255, 255])
 
 # named items for easy reference
 barsWindow = 'Bars'
-hl = 'H Low'
-hh = 'H High'
-sl = 'S Low'
-sh = 'S High'
-vl = 'V Low'
-vh = 'V High'
+hl_name = 'H Low'
+hh_name = 'H High'
+sl_name = 'S Low'
+sh_name = 'S High'
+vl_name = 'V Low'
+vh_name = 'V High'
 
 # Give CV acces to camera
 camera = cv.VideoCapture(0)
@@ -42,37 +41,62 @@ kernel = np.ones((3, 3), np.uint8)
 # create window for the slidebars
 cv.namedWindow(barsWindow, flags=cv.WINDOW_AUTOSIZE)
 
-# create the sliders
-cv.createTrackbar(hl, barsWindow, 0, 179, nothing)
-cv.createTrackbar(hh, barsWindow, 0, 179, nothing)
-cv.createTrackbar(sl, barsWindow, 0, 255, nothing)
-cv.createTrackbar(sh, barsWindow, 0, 255, nothing)
-cv.createTrackbar(vl, barsWindow, 0, 255, nothing)
-cv.createTrackbar(vh, barsWindow, 0, 255, nothing)
 
-# set initial values for sliders
-cv.setTrackbarPos(hl, barsWindow, MIN_HSV[0])
-cv.setTrackbarPos(hh, barsWindow, MAX_HSV[0])
-cv.setTrackbarPos(sl, barsWindow, MIN_HSV[1])
-cv.setTrackbarPos(sh, barsWindow, MAX_HSV[1])
-cv.setTrackbarPos(vl, barsWindow, MIN_HSV[2])
-cv.setTrackbarPos(vh, barsWindow, MAX_HSV[2])
+# read trackbar positions for all
+hul = hsv_settings['hl']
+huh = hsv_settings['hh']
+sal = hsv_settings['sl']
+sah = hsv_settings['sh']
+val = hsv_settings['vl']
+vah = hsv_settings['vh']
+
+
+# update setting for hsv
+def update(x):
+    print(x)
+    hsv_settings_object = {
+        "hl": hul,
+        "hh": huh,
+        "sl": sal,
+        "sh": sah,
+        "vl": val,
+        "vh": vah
+    }
+
+    with open('./hsv_settings.json', 'w') as write_file:
+        json.dump(hsv_settings_object, write_file)
 
 
 def calculate_arm(p1, p2):
     return math.sqrt(math.pow(p1[0] - p2[0], 2) + math.pow(p1[1] - p2[1], 2))
 
 
+# create the sliders
+cv.createTrackbar(hl_name, barsWindow, 0, 179, update)
+cv.createTrackbar(hh_name, barsWindow, 0, 179, update)
+cv.createTrackbar(sl_name, barsWindow, 0, 255, update)
+cv.createTrackbar(sh_name, barsWindow, 0, 255, update)
+cv.createTrackbar(vl_name, barsWindow, 0, 255, update)
+cv.createTrackbar(vh_name, barsWindow, 0, 255, update)
+
+# set initial values for sliders
+cv.setTrackbarPos(hl_name, barsWindow, hsv_settings['hl'])
+cv.setTrackbarPos(hh_name, barsWindow, hsv_settings['hh'])
+cv.setTrackbarPos(sl_name, barsWindow, hsv_settings['sl'])
+cv.setTrackbarPos(sh_name, barsWindow, hsv_settings['sh'])
+cv.setTrackbarPos(vl_name, barsWindow, hsv_settings['vl'])
+cv.setTrackbarPos(vh_name, barsWindow, hsv_settings['vh'])
+
 while camera.isOpened():
     _, frame = camera.read()
 
     # read trackbar positions for all
-    hul = cv.getTrackbarPos(hl, barsWindow)
-    huh = cv.getTrackbarPos(hh, barsWindow)
-    sal = cv.getTrackbarPos(sl, barsWindow)
-    sah = cv.getTrackbarPos(sh, barsWindow)
-    val = cv.getTrackbarPos(vl, barsWindow)
-    vah = cv.getTrackbarPos(vh, barsWindow)
+    hul = cv.getTrackbarPos(hl_name, barsWindow)
+    huh = cv.getTrackbarPos(hh_name, barsWindow)
+    sal = cv.getTrackbarPos(sl_name, barsWindow)
+    sah = cv.getTrackbarPos(sh_name, barsWindow)
+    val = cv.getTrackbarPos(vl_name, barsWindow)
+    vah = cv.getTrackbarPos(vh_name, barsWindow)
 
     # make array for final values
     hsv_low = np.array([hul, sal, val])
@@ -97,8 +121,8 @@ while camera.isOpened():
                 largest_area = area
                 largest_contour = i
         res = contours[largest_contour]
-        hull = cv.convexHull(res)
-        cv.drawContours(frame, [hull], 0, (0, 0, 255), 3)
+        # hull = cv.convexHull(res)
+        # cv.drawContours(frame, [hull], 0, (0, 0, 255), 3)
 
     # Create convexes
         hull = cv.convexHull(res, returnPoints=False)
@@ -128,16 +152,14 @@ while camera.isOpened():
     # Check only for the thumb
                     if MIN_ANGLE_THUMB <= angle < HALF_PI:
                         valid_points.append(start)
-                        print(start)
                         cv.putText(frame, str(math.degrees(angle)), start, FONT_FACE, 0.6, (255, 128, 0),
-                                   FONT_THICKNESS, cv.LINE_AA)
+                                   1, cv.LINE_AA)
 
-                    # Check only for the fingers
+    # Check only for the fingers
                     if angle <= MAX_ANGLE_FINGERS:
                         valid_points.append(end)
-                        print(end)
                         cv.putText(frame, str(math.degrees(angle)), end, FONT_FACE, 0.6, (128, 255, 0),
-                                   FONT_THICKNESS, cv.LINE_AA)
+                                   1, cv.LINE_AA)
 
                     length_of_valid_points = len(valid_points)
                     amount_of_valid_points_collector.append(length_of_valid_points)
@@ -148,8 +170,8 @@ while camera.isOpened():
                 length_of_valid_points = len(valid_points)
 
                 for i in range(length_of_valid_points):
-                    cv.circle(frame, valid_points[i], 15, (255, 0, 0), -1)
-
+                    cv.circle(frame, valid_points[i], 3, (255, 0, 0), -1)
+                    print("point: {}, Cor: {}".format(i, valid_points[i]))
     cv.imshow('mask', mask)
     cv.imshow('frame', frame)
 
