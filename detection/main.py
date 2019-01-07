@@ -17,12 +17,12 @@ FONT_SCALE = 2
 FONT_THICKNESS = 3
 
 HALF_PI = math.pi / 2
-MIN_ANGLE_THUMB = HALF_PI - math.radians(40)
-MAX_ANGLE_FINGERS = HALF_PI - math.radians(10)
+MIN_ANGLE_THUMB = HALF_PI - math.radians(40)    #40
+MAX_ANGLE_FINGERS = HALF_PI - math.radians(10)  #10
 
 # Default hsv maks settings
-MIN_HSV = np.array([0, 0, 255])
-MAX_HSV = np.array([179, 65, 255])
+MIN_HSV = np.array([0, 121, 255])
+MAX_HSV = np.array([36, 255, 255])
 
 # named items for easy reference
 barsWindow = 'Bars'
@@ -60,7 +60,7 @@ cv.setTrackbarPos(vh, barsWindow, MAX_HSV[2])
 
 
 def calculate_arm(p1, p2):
-    return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+    return math.sqrt(math.pow(p1[0] - p2[0], 2) + math.pow(p1[1] - p2[1], 2))
 
 
 while camera.isOpened():
@@ -97,10 +97,11 @@ while camera.isOpened():
                 largest_area = area
                 largest_contour = i
         res = contours[largest_contour]
+        hull = cv.convexHull(res)
+        cv.drawContours(frame, [hull], 0, (0, 0, 255), 3)
 
     # Create convexes
         hull = cv.convexHull(res, returnPoints=False)
-
     # Check if there are convexes
         if len(hull) > 2:
             convex_defects = cv.convexityDefects(res, hull)  # Find points of defections
@@ -122,15 +123,21 @@ while camera.isOpened():
                     arm_c = calculate_arm(end, far)
 
     # Calculating the angle between the fingers
-                    angle = math.acos((arm_b ** 2 + arm_c ** 2 - arm_a ** 2) / (2 * arm_b * arm_c))
+                    angle = math.acos((math.pow(arm_b, 2) + math.pow(arm_c, 2) - math.pow(arm_a, 2)) / (2 * arm_b * arm_c))
 
-    # Check for the thumb only
+    # Check only for the thumb
                     if MIN_ANGLE_THUMB <= angle < HALF_PI:
                         valid_points.append(start)
+                        print(start)
+                        cv.putText(frame, str(math.degrees(angle)), start, FONT_FACE, 0.6, (255, 128, 0),
+                                   FONT_THICKNESS, cv.LINE_AA)
 
-    # Check for the fingers only
+                    # Check only for the fingers
                     if angle <= MAX_ANGLE_FINGERS:
                         valid_points.append(end)
+                        print(end)
+                        cv.putText(frame, str(math.degrees(angle)), end, FONT_FACE, 0.6, (128, 255, 0),
+                                   FONT_THICKNESS, cv.LINE_AA)
 
                     length_of_valid_points = len(valid_points)
                     amount_of_valid_points_collector.append(length_of_valid_points)
